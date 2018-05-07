@@ -8,14 +8,21 @@ import datetime
 # Load templates for matching 
 #
 GameStartTemplate = cv2.imread('images/start_template.png',0)
+
 ScoreboardTemplate = cv2.imread('images/topBoardTemplate2.png',0)
+
 ScoreDigitPics = []
 for i in range(0,10):
     ScoreDigitPics.append((cv2.imread('images/score_digits/%d.png' % i,0), i))
-CaptureDeviceNum = 2 # Note: this will change depending on the number of cameras you have attached
+
+# Note: this will change depending on the number of cameras you have attached
+CaptureDeviceNum = 1 
+
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
+
 # Note: The video size must match the correct frame image size, or the video will not demultiplex
 VideoWriterImageSize = (720,480)
+
 VideoWriterFramesPerSec = 30.0
 
 #
@@ -37,7 +44,7 @@ def GetScoresFromScoreboard(frame):
         res = cv2.matchTemplate(f_gray, currentDigit[0], cv2.TM_CCOEFF_NORMED)
         loc = np.where( res >= threshold)
 
-	#cv2.imshow('digit', currentDigit[0])
+        #cv2.imshow('digit', currentDigit[0])
         #p = (106, 50)  #64,50
         #cv2.rectangle(frame, p, (p[0] + 35, p[1] + 30), (0,0,255), 2)
         #crop_img = frame[p[1]:p[1]+30, p[0]:p[0]+35]
@@ -129,10 +136,10 @@ def DetectGameStart(frameset):
     return totalPoints > 0
     
 def WriteScoreAndTime(data):
-    f = open("scoreData-%s" % datetime.datetime.now(), "w+")
-    for entry in data: 
-        f.write(entry)
-    f.close() 
+    with open("scoreData/%s.txt" % datetime.datetime.now(),"a+") as f:
+        for entry in data: 
+            entryString = "{0}: ({1}, {2})\n".format(entry[1], entry[0][0], entry[0][1])
+            f.write(entryString)
 
 def TryGetVideo():
     cap = cv2.VideoCapture(CaptureDeviceNum)
@@ -147,12 +154,12 @@ def TryGetVideo():
 
     frameCount = 0
     while(cap.isOpened()):
-	# Capture frame-by-frame
-	ret, frame = cap.read()
+        # Capture frame-by-frame
+        ret, frame = cap.read()
 
-	if ret==True:
-        # write the frame
-	    currentVideo.write(frame)
+        if ret==True:
+            # write the frame
+            currentVideo.write(frame)
             frameCount += 1
             #cv2.imwrite('frame.png', frame)
             if frameCount % 60 == 0: 
@@ -166,7 +173,7 @@ def TryGetVideo():
                         scoreboard = CheckForScoreboard(frame)
                     except:
                         print("Something went wrong while checking for the scoreboard") 
-		
+        
                     if not (scoreboard is None):
                         try:
                             ours, theirs = GetScoresFromScoreboard(scoreboard)
@@ -177,12 +184,12 @@ def TryGetVideo():
                         except:
                             print("Something went wrong while getting the score from the scoreboard") 
 
-	    cv2.imshow('frame',frame)
-	    if cv2.waitKey(1) & 0xFF == ord('q'):
-          WriteScoreAndTime(scoreAndTime)
-		  break
-	else:
-	    break
+            cv2.imshow('frame',frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+              WriteScoreAndTime(scoreAndTime)
+              break
+        else:
+            break
 
     # When everything is done, release the capture
     currentVideo.release()
@@ -195,7 +202,7 @@ while(True):
     try:
         TryGetVideo()
     except: 
-	   print("Error while trying to get video")
+       print("Error while trying to get video")
     
     print("No video detected. Waiting 5 seconds...")
     time.sleep(5)
